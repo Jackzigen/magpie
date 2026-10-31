@@ -52,8 +52,88 @@ var trayDe = map[string]string{
 	"Restart Now to Update (%d in flight)": "Jetzt neu starten und aktualisieren (%d laufend)",
 }
 
-// trayWords are the tray menu's translations by language.
+// trayTips are the usage tooltip's words (#4375), the ones trayusage.go
+// puts under the tray icon — today's or the last 7 days' tokens, their cost
+// and the requests — in the tray menu's four languages, English where a
+// language has none. Sentence-shaped keys, as the menu's: trayText runs
+// fmt.Sprintf over them, so a key with no verb holds its figure alone.
+var trayTipZh = map[string]string{
+	"Today":                      "今日",
+	"Today: ":                    "今日：",
+	"Last 7 days":                "最近 7 天",
+	"Today: no requests yet":     "今日：暂无请求",
+	"%s in magpie":               "%s经 magpie",
+	"%s tokens (%s in · %s out":  "%s token（输入 %s · 输出 %s",
+	" · %s cached":               " · 缓存 %s",
+	")":                          "）",
+	"%s requests":                "%s 个请求",
+	"1 request":                  "1 个请求",
+	"%s requests, %s with no known price": "%s 个请求，其中 %s 个无已知价格",
+	"1 request, %s with no known price":   "1 个请求，其中 %s 个无已知价格",
+}
+
+// trayTipZhTW is the usage tooltip in Traditional Chinese.
+var trayTipZhTW = map[string]string{
+	"Today":                      "今日",
+	"Today: ":                    "今日：",
+	"Last 7 days":                "最近 7 天",
+	"Today: no requests yet":     "今日：尚無請求",
+	"%s in magpie":               "%s經 magpie",
+	"%s tokens (%s in · %s out":  "%s token（輸入 %s · 輸出 %s",
+	" · %s cached":               " · 快取 %s",
+	")":                          "）",
+	"%s requests":                "%s 個請求",
+	"1 request":                  "1 個請求",
+	"%s requests, %s with no known price": "%s 個請求，其中 %s 個無已知價格",
+	"1 request, %s with no known price":   "1 個請求，其中 %s 個無已知價格",
+}
+
+// trayTipJa is the usage tooltip in Japanese.
+var trayTipJa = map[string]string{
+	"Today":                      "今日",
+	"Today: ":                    "今日：",
+	"Last 7 days":                "過去 7 日間",
+	"Today: no requests yet":     "今日：まだリクエストがありません",
+	"%s in magpie":               "magpie での %s",
+	"%s tokens (%s in · %s out":  "%s トークン（入力 %s · 出力 %s",
+	" · %s cached":               " · キャッシュ %s",
+	")":                          "）",
+	"%s requests":                "%s 件のリクエスト",
+	"1 request":                  "1 件のリクエスト",
+	"%s requests, %s with no known price": "%s 件のリクエストのうち %s 件は価格不明",
+	"1 request, %s with no known price":   "1 件のリクエストのうち %s 件は価格不明",
+}
+
+// trayTipDe is the usage tooltip in German.
+var trayTipDe = map[string]string{
+	"Today":                      "Heute",
+	"Today: ":                    "Heute: ",
+	"Last 7 days":                "Letzte 7 Tage",
+	"Today: no requests yet":     "Heute: noch keine Anfragen",
+	"%s in magpie":               "%s in magpie",
+	"%s tokens (%s in · %s out":  "%s Token (%s in · %s out",
+	" · %s cached":               " · %s gecached",
+	")":                          ")",
+	"%s requests":                "%s Anfragen",
+	"1 request":                  "1 Anfrage",
+	"%s requests, %s with no known price": "%s Anfragen, %s ohne bekannten Preis",
+	"1 request, %s with no known price":   "1 Anfrage, %s ohne bekannten Preis",
+}
+
+// trayWords are the tray menu's translations by language, with the usage
+// tooltip's (#4375) merged in: the menu's and the tooltip's share one
+// lookup in trayText.
 var trayWords = map[string]map[string]string{"zh": trayZh, "zh-TW": trayZhTW, "ja": trayJa, "de": trayDe}
+
+func init() {
+	for lang, tips := range map[string]map[string]string{"zh": trayTipZh, "zh-TW": trayTipZhTW, "ja": trayTipJa, "de": trayTipDe} {
+		for key, s := range tips {
+			if _, ok := trayWords[lang][key]; !ok {
+				trayWords[lang][key] = s
+			}
+		}
+	}
+}
 
 // onLang relabels the tray menu when the Settings page changes the
 // language; set by the process that has the tray.

@@ -41,14 +41,15 @@ func (h *host) watchTrayUsage() {
 		for {
 			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 			s := settings.Load()
-			cells, label, tip := trayCardsView(trayUsageCards(ctx, s.TrayUsages), time.Now(), s.QuotaLeft, s.TrayPace, s.TrayWindows)
+			lang := trayLang(s.Lang, systemLang)
+			cells, label, tip := trayCardsView(trayUsageCards(ctx, s.TrayUsages, lang), time.Now(), s.QuotaLeft, s.TrayPace, s.TrayWindows)
 			cancel()
 			if s.TrayNoLogos {
 				cells = trayPlain(cells)
 			}
 			if tip == "" {
 				currency, rate := trayCurrency()
-				tip = trayIdleTip(trayMoney(trayTotalSum(usage.Today), s.TrayNoCost), currency, rate)
+				tip = trayIdleTip(trayMoney(trayTotalSum(usage.Today), s.TrayNoCost), currency, rate, lang)
 			}
 			if runtime.GOOS != "darwin" {
 				cells = nil
