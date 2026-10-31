@@ -15,6 +15,7 @@
 (() => {
   const plugins = new Map(); // id → { id, config, onConfig: [], disposers: [] }
   const pages = new Map(); // key → { plugin, part, main, mounted, broken }
+  const held = []; // calls before magpie.start, replayed once it ran (#4537)
   let started = false;
 
   function context(p) {
@@ -109,6 +110,14 @@
     } else if (!page.mounted && started) {
       run(page, "mount", [page.main]);
       if (page.broken) return undefined;
+    }
+    // before magpie.start a page's code has never run: the shell is not
+    // ready to open it, and calling an unmounted page's hook crashes on
+    // what mount never set up (#4537) — hold the call, run it once start
+    // has mounted the page, in the order the reader asked for it
+    if (!started) {
+      held.push({ page, hook, args });
+      return undefined;
     }
     const fn = page.part[hook];
     if (typeof fn !== "function") return undefined;
@@ -240,6 +249,12 @@
       if (started) return;
       started = true;
       for (const page of pages.values()) run(page, "mount", [page.main]);
+      // what was asked for before start (#4537): once the pages are
+      // mounted, run the calls that were held, in the order they came
+      for (const { page, hook, args } of held.splice(0)) {
+        if (pages.get(page.part.key) !== page) continue; // a page since gone
+        run(page, hook, args);
+      }
     },
     // a page's hook, behind the boundary; nothing for a page no plugin has
     call(key, hook, ...args) {
