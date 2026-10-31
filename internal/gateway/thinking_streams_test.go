@@ -32,7 +32,14 @@ func (s *slowThinker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.sent = append(s.sent, time.Now())
 		time.Sleep(s.gap)
 	}
-	s.done <- time.Now()
+	// a try that is asked again serves the same fake vendor a second time;
+	// the channel holds one send, so a second handler would block here
+	// forever and the server's Close wait on it until the package times out
+	// (#4530). The test reads the time once; later sends can drop.
+	select {
+	case s.done <- time.Now():
+	default:
+	}
 }
 
 var glmThinksSlowly = []string{
