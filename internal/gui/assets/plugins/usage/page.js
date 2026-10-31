@@ -569,7 +569,9 @@ function renderUsage() {
   // written count is secondary and only fits in the tooltip.
   // a vendor that counts no cache (cache_unknown) is left out (#3464)
   const hitRate = cacheHitOf(u);
-  const hit = u.cache_read && hitRate !== null ? t("hit rate {p}", { p: Math.round(100 * hitRate) + "%" }) : "";
+  // one decimal, not rounded to a whole: a hit rate near 100% reads as 100%
+  // and misleads (yetone/magpie#4361)
+  const hit = u.cache_read && hitRate !== null ? t("hit rate {p}", { p: (100 * hitRate).toFixed(1) + "%" }) : "";
   tile(fmtN(u.cache_read), t("cache read"), hit, u.cache_write ? t("{n} written", { n: fmtN(u.cache_write) }) + cacheTTLs(u, fmtN) : "");
   tile(fmtN(u.reasoning), t("reasoning"), t("inside output"));
   tile(String(u.calls), t(u.calls === 1 ? "call" : "calls"), [u.errors ? t("{n} failed", { n: u.errors }) : "", u.retried ? t("{n} answered on a retry", { n: u.retried }) : "", u.unpriced ? t("{n} unpriced", { n: u.unpriced }) : ""].filter(Boolean).join(" · "), u.unpriced ? unpricedCallsWhy(u.unpriced) : "");
@@ -643,7 +645,9 @@ function renderUsage() {
       // how much of its prompt came from the cache, counted as the cache
       // read tile counts it (#925)
       const hitRate = cacheHitOf(g);
-      const hit = g.cache_read && hitRate !== null ? " · " + t("hit rate {p}", { p: Math.round(100 * hitRate) + "%" }) : "";
+      // one decimal like the cache read tile and the big Cache hit rate
+      // block, which a whole-number rate beside them disagreed with (#4361)
+      const hit = g.cache_read && hitRate !== null ? " · " + t("hit rate {p}", { p: (100 * hitRate).toFixed(1) + "%" }) : "";
       num.append(el("b", "", fmtN(usageTokens(g))), el("small", "", t("{a} in · {b} out", { a: fmtN(g.input), b: fmtN(g.output) }) + (g.cache_read ? " · " + t("{n} cached", { n: fmtN(g.cache_read) }) : "") + hit));
       r.append(num);
       r.append(el("div", "cost", fmtCost(g) ? "≈" + fmtCost(g) : ""));
@@ -3098,7 +3102,7 @@ function renderSessions() {
     tile(c ? "≈" + c : "—", t("cost"), unpricedModels || t("at effective prices"), unpricedNote);
     // input leaves out what was read from the cache and written to it
     const prompt = tot.input + tot.cache_read + tot.cache_write;
-    tile(fmtN(tot.cache_read), t("cache read"), tot.cache_read && prompt ? t("hit rate {p}", { p: Math.round(100 * tot.cache_read / prompt) + "%" }) : "", tot.cache_write ? t("{n} written", { n: fmtN(tot.cache_write) }) : "");
+    tile(fmtN(tot.cache_read), t("cache read"), tot.cache_read && prompt ? t("hit rate {p}", { p: (100 * tot.cache_read / prompt).toFixed(1) + "%" }) : "", tot.cache_write ? t("{n} written", { n: fmtN(tot.cache_write) }) : "");
     tile(active == null ? "—" : fmtDur(active), t("active"), active == null ? t("not kept by model") : t(days === 1 ? "on {n} day" : "on {n} days", { n: days }),
       t("The time the sessions were at work: the pauses between one message and the next, each under five minutes"), "dur");
     // how many folders, and how much of it the first took

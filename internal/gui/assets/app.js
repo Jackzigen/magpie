@@ -17316,7 +17316,9 @@ function renderPanelUse() {
     blk("Requests", ledNum(l.calls), [l.errors ? t("{n} failed", { n: ledNum(l.errors) }) : t("none failed"), l.retried ? t("{n} answered on a retry", { n: ledNum(l.retried) }) : ""].filter(Boolean).join(" · "), "", l.errors ? "bad" : "");
     const c = fmtCost(l);
     blk("Cost", c ? "≈" + c : "—", l.unpriced ? t("{n} unpriced", { n: l.unpriced }) : t("effective prices"), c ? "cost" : "");
-    blk("Cache hit rate", hitRate === null ? "—" : Math.round(100 * hitRate) + "%", cacheLeftOut(l) || t("of the prompt"));
+    // one decimal, as the Usage page says it (#4361): a whole number rounds
+    // 99%+ up to 100% and reads as all of the prompt cached
+    blk("Cache hit rate", hitRate === null ? "—" : (100 * hitRate).toFixed(1) + "%", cacheLeftOut(l) || t("of the prompt"));
     const card = el("div", "pu-card");
     const head = el("div", "led-bar");
     const met = el("div", "segs");
@@ -19064,7 +19066,7 @@ function drawLedRank(box, l, split, metric, picked, choose, compact) {
     if (metric !== "speed" && gs) more.push(Object.assign(el("span", "rk-speed", gs.text), { title: gs.title }));
     if (ledTTFT(x)) more.push(t("TTFT {ms}", { ms: ledTook(ledTTFT(x)) }));
     const hit = cacheHitOf(x);
-    if (hit !== null && !compact) more.push(t("hit rate {p}", { p: Math.round(100 * hit) + "%" }));
+    if (hit !== null && !compact) more.push(t("hit rate {p}", { p: (100 * hit).toFixed(1) + "%" }));
     // a speed is no one's share of all
     if (metric !== "speed") more.push(Math.round((100 * v) / sum) + "%");
     const l2 = el("div", "rk-b");
