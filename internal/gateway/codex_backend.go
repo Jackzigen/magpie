@@ -1070,7 +1070,7 @@ func (s *Server) codexUpstreamOn(w http.ResponseWriter, r *http.Request, rest st
 				}
 				try.TTFT, try.FirstText = fromTry(ttft), fromTry(text)
 				try.Net = nt.timing(try.Start, 0)
-				t.ReasoningHidden = first.hidesReasoning(provider.Responses)
+				t.ReasoningHidden = first.hidesReasoning(provider.Responses, uu.Reasoning > 0)
 				try.ReasoningHidden = t.ReasoningHidden
 				t.Done, t.Status, t.Error, t.Millis, t.Tokens = true, status, msg, ms, tokens
 				if t.TitleLink != nil && isTitleKind(kind) && status < 400 && msg == "" && !titleReply.truncated {
@@ -1470,9 +1470,10 @@ func (s *Server) codexUpstreamOn(w http.ResponseWriter, r *http.Request, rest st
 		call.Fallback = strings.TrimSuffix(call.Fallback, "; ")
 	}
 	call.TTFT, call.FirstText = first.ms()
-	call.ReasoningHidden = first.hidesReasoning(provider.Responses)
 	uu.add(sniff.usage())
 	uu.Tier = servedTierAt(provider.HostOf(base), uu.Tier)
+	// after the usage is in: the count tells whether reasoning hid
+	call.ReasoningHidden = first.hidesReasoning(provider.Responses, uu.Reasoning > 0)
 	call.Flow = first.flowFor(uu.Reasoning)
 	call.Usage, served = uu, uu.Served
 	errType := ""

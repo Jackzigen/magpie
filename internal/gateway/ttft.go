@@ -316,9 +316,12 @@ func (f *firstToken) flowFor(reasoning int) int64 {
 }
 
 // hidesReasoning excludes sealed thinking and Responses summaries even when
-// the upstream omits a separate reasoning-token count.
-func (f *firstToken) hidesReasoning(proto provider.Protocol) bool {
-	return f.hidden || (proto == provider.Responses || proto == provider.Gemini || proto == provider.CodeAssist) && f.reasoning > 0
+// the upstream omits a separate reasoning-token count, and a channel the
+// stream saw reason while its usage carried no reasoning-token count at all
+// (#4545): the number is missing, not zero — the record says so instead of
+// reading a precise-looking 0.
+func (f *firstToken) hidesReasoning(proto provider.Protocol, counted bool) bool {
+	return f.hidden || f.reasoning > 0 && ((proto == provider.Responses || proto == provider.Gemini || proto == provider.CodeAssist) || !counted)
 }
 
 // reasoningMs requires a paced visible channel. Responses and Gemini summaries

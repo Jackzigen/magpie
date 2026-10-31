@@ -277,7 +277,7 @@ func TestEncryptedReasoningWithoutTokenDetails(t *testing.T) {
 func TestGeminiSummaryWithoutThoughtCount(t *testing.T) {
 	f := firstToken{start: time.Now().Add(-time.Second)}
 	f.see([]byte(`data: {"candidates":[{"content":{"parts":[{"text":"visible summary","thought":true}]}}]}` + "\n\n"))
-	if !f.hidesReasoning(provider.Gemini) || f.reasoningMs(provider.Gemini) != 0 {
+	if !f.hidesReasoning(provider.Gemini, false) || f.reasoningMs(provider.Gemini) != 0 {
 		t.Fatal("Gemini summary timed without its hidden thought count")
 	}
 }
@@ -376,5 +376,42 @@ func TestLiveVisibleReasoningFixture(t *testing.T) {
 	n, ms := usage.DecodeOf(sample.Record.Out, sample.Record.Reasoning, sample.Record.Ms, sample.Record.TTFT, 0, sample.Record.Flow, sample.First)
 	if n != 76 || ms != 731 {
 		t.Fatalf("live tool turn speed %d/%d; want 76/731", n, ms)
+	}
+}
+
+// TestReasoningStreamedButNotCounted is #4545's case B: reasoning the
+// stream showed while the usage named no reasoning-token count. The
+// record must say the count hid instead of reading a precise 0.
+func TestReasoningStreamedButNotCounted(t *testing.T) {
+	thought := `data: {"choices":[{"delta":{"reasoning_content":"a thought"}}]}` + "\n\n"
+	for _, c := range []struct {
+		name    string
+		proto   provider.Protocol
+		counted bool
+		want    bool
+	}{
+		{"chat with count", provider.Chat, true, false},
+		{"chat, count missing", provider.Chat, false, true},
+		{"anthropic, count missing", provider.Anthropic, false, true},
+		{"responses summary, count missing", provider.Responses, false, true},
+		{"count missing but nothing streamed", provider.Chat, false, false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			f := firstToken{start: time.Now().Add(-time.Second)}
+			if c.name != "count missing but nothing streamed" {
+				f.see([]byte(thought))
+			}
+			if got := f.hidesReasoning(c.proto, c.counted); got != c.want {
+				t.Fatalf("hidesReasoning=%v; want %v", got, c.want)
+			}
+		})
+	}
+	// a counted, paced channel keeps its timing
+	f := firstToken{start: time.Now().Add(-time.Second)}
+	f.see([]byte(thought))
+	time.Sleep(150 * time.Millisecond)
+	f.see([]byte(thought))
+	if f.hidesReasoning(provider.Chat, true) || f.reasoningMs(provider.Chat) == 0 {
+		t.Fatal("a counted paced channel lost its timing")
 	}
 }
