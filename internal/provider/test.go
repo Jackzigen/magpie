@@ -468,16 +468,34 @@ func (p Provider) testOne(ctx context.Context, model string) Result {
 
 // keySeeing is p with the key a test of model on proto goes with: one made
 // for that API, else one made for any, that sees the model. A provider
-// without keys is left as it is.
+// without keys is left as it is — unless it is one of several accounts,
+// where the account asked is one that serves the model, as routing picks
+// it (#4992: a model only another account's list has was tested with the
+// first account and failed, while a real request went to the account that
+// serves it and answered).
 func (p Provider) keySeeing(proto Protocol, model string) (Provider, bool) {
 	keys := p.KeysOn()
 	if len(keys) == 0 {
+		if p.Account != nil {
+			if p.AccountServes(p.Account.User, model) {
+				return p, true
+			}
+			// the first account's list leaves the model out: one of the
+			// provider's other accounts in use serves it, and the test
+			// goes there, as a request would
+			for _, q := range p.AlsoOn() {
+				if q.Account != nil && p.AccountServes(q.Account.User, model) {
+					return q, true
+				}
+			}
+			return p, false
+		}
 		return p, true
 	}
 	serves := p.Serving(model)
 	for _, want := range []Protocol{proto, ""} {
 		for _, k := range keys {
-			if k.Protocol == want && serves(k) {
+			if k.Protocol == want && serves(k) && p.AccountServes(KeyID(k.Key), model) {
 				return p.WithKey(k), true
 			}
 		}
