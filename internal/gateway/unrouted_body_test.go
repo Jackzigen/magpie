@@ -176,4 +176,23 @@ func TestUnroutedBodyRoomWaitNot408(t *testing.T) {
 	if res.StatusCode == http.StatusRequestTimeout || strings.Contains(string(b), "its body was still arriving") {
 		t.Fatalf("a request waiting for magpie's body room was answered %d %s", res.StatusCode, b)
 	}
+
+	// the 504 was answered before the held report was written (#4989):
+	// wait for the report, whose name reaches the route once writing it
+	// is over, so TempDir's cleanup of the cache doesn't race a write
+	// still under way ("directory not empty")
+	for deadline := time.Now().Add(10 * time.Second); ; time.Sleep(10 * time.Millisecond) {
+		for _, r := range routesOf(s, "") {
+			if r.Held == "" {
+				continue
+			}
+			if _, err := HeldReport(r.Held); err != nil {
+				t.Fatal(err)
+			}
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("no route names the report")
+		}
+	}
 }
